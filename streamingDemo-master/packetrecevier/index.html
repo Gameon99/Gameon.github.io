@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="YUVCanvas.js"></script>
+</head>
+
+<body>
+    <div>
+        <button id="openbtn">Open</button>
+        <input id="uri" type="text" value="rtsp://root:camera@10.7.228.229/stream/profile1"></input>
+    </div>
+    <canvas id="glCanvas" width="1920" height="1080" style="border:1px solid black"></canvas>
+    <video autoplay></video>
+</body>
+<script>
+decoder = new Worker('worker.js');
+
+var ws = null;
+var uri = document.getElementById('uri');
+var openBtn = document.getElementById('openbtn');
+
+
+
+
+openBtn.onclick = function(e) {
+    startDecode(uri.value)
+}
+
+function startDecode(uri) {
+    var yuvCanvas = new YUVCanvas({
+        canvas: glCanvas,
+        width: glCanvas.width,
+        height: glCanvas.height
+    });
+
+    stream = glCanvas.captureStream();
+    var video = document.querySelector('video');
+    //video.srcObject = stream;
+    //debugger;
+
+
+
+
+    fullUri = "ws://" + window.location.host + "/ws?uri=" + uri
+
+    decoder.postMessage({
+        topic: "openUri",
+        data: fullUri
+    });
+
+    decoder.onmessage = function(e) {
+        var decodedFrame = e.data;
+        yuvCanvas.drawNextOuptutPictureGL({
+            yData: decodedFrame.frameYData,
+            yDataPerRow: decodedFrame.frame_width,
+            yRowCnt: decodedFrame.frame_height,
+            uData: decodedFrame.frameUData,
+            uDataPerRow: decodedFrame.frame_width / 2,
+            uRowCnt: decodedFrame.frame_height / 2,
+            vData: decodedFrame.frameVData,
+            vDataPerRow: decodedFrame.frame_width / 2,
+            vRowCnt: decodedFrame.frame_height / 2
+        });
+    }
+}
+</script>
+
+</html>
